@@ -31,7 +31,7 @@ def contouring(thresh, mid, img, right = False):
 #defining function to get threshold value
 
 def get_threshold():
-    return 80
+    return 40
 
 #defining fucntion to get distance between 2 points 
 
@@ -39,7 +39,7 @@ def get_dist(x1, y1, x2, y2):
     return np.sqrt((x2-x1)**2 + (y2-y1)**2)
 
 
-def calibration_phase():
+def draw_thread():
 
     global top_left_x, top_left_y, top_right_x, top_right_y, bottom_left_x, bottom_left_y, bottom_right_x, bottom_right_y
     global interim_top_left, interim_top_right, interim_bottom_left, interim_bottom_right
@@ -120,13 +120,13 @@ def calibration_phase():
         averaging_list_x_index = 0
         averaging_list_y_index = 0
     else:
-        print("gadbad")
+        print("error in calibration - please restart the program")
     while run:
         pygame.time.delay(100)      # 0.1 seconds
 
         if(averaging_list_x[2] == -1 and averaging_list_y[2] == -1):
             x_to_display = (x_screen/(width_for_pupil*(1.5))) * (( abs(leftx - final_x1[0]) + abs(rightx - final_x1[1]) ) / 2 ) 
-            y_to_display = (y_screen/(height_for_pupil*(3.5))) * (( abs(lefty - final_y1[0]) + abs(righty - final_y1[1]) ) / 2 )
+            y_to_display = (y_screen/(height_for_pupil*(3.2))) * (( abs(lefty - final_y1[0]) + abs(righty - final_y1[1]) ) / 2 )
             averaging_list_x[averaging_list_x_index] = x_to_display
             averaging_list_y[averaging_list_y_index] = y_to_display
             averaging_list_x_index += 1
@@ -140,7 +140,7 @@ def calibration_phase():
             y_to_display = (averaging_list_y[0] + averaging_list_y[1] + averaging_list_y[2]) / 3
 
             new_x = (x_screen/(width_for_pupil*(1.5))) * (( abs(leftx - final_x1[0]) + abs(rightx - final_x1[1]) ) / 2 )
-            new_y = (y_screen/(height_for_pupil*(3.5))) * (( abs(lefty - final_y1[0]) + abs(righty - final_y1[1]) ) / 2 )
+            new_y = (y_screen/(height_for_pupil*(3.2))) * (( abs(lefty - final_y1[0]) + abs(righty - final_y1[1]) ) / 2 )
 
             for i in range (0,2):
                 averaging_list_x[i] = averaging_list_x[i+1]
@@ -168,7 +168,7 @@ def calibration_phase():
 
 
 
-def main_stuff():
+def pupil_thread():
 
     global top_left_x, top_left_y, top_right_x, top_right_y, bottom_left_x, bottom_left_y, bottom_right_x, bottom_right_y
     global interim_top_left, interim_top_right, interim_bottom_left, interim_bottom_right
@@ -201,9 +201,6 @@ def main_stuff():
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)          #predictor works on grayscale images
         rects = detector(gray, 1)                               #detect faces in the grayscale image, 1 is the number of times to upsample the image (to detect faces at different distances)
         
-        if(rects.__len__() == 0):
-            cv2.putText(frame, "Not looking on screen", (90, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (0,0,255), 2)
-        
         for rect in rects:                                      #for each face detected
 
             # convert coordinates into a 2d numpy array 
@@ -232,12 +229,6 @@ def main_stuff():
 
             (leftx, lefty) = contouring(thresh[:, 0:mid], mid, frame)     #get the coordinates of the left pupil
             (rightx, righty) = contouring(thresh[:, mid:], mid, frame, True)
-
-            cv2.circle(frame, (leftx, lefty), 4, (0,0,255), 2)           #draw a circle at the left pupil
-            cv2.circle(frame, (rightx, righty), 4, (0,0,255), 2)         #draw a circle at the right pupil
-
-            for (x,y) in coords:
-                cv2.circle(frame, (x,y), 1, (0,255,0), -1)
 
             if(calibration_for_corner == 0):
                 top_left_x = np.append(top_left_x, np.array([[leftx, rightx]]), axis=0)
@@ -296,8 +287,8 @@ def main_stuff():
 
 if __name__ == '__main__':
     
-    p1 = threading.Thread(target = calibration_phase, args = ())
-    p2 = threading.Thread(target = main_stuff, args = ())
+    p1 = threading.Thread(target = draw_thread, args = ())
+    p2 = threading.Thread(target = pupil_thread, args = ())
 
     # defining arrays and floats to store coordinates for calibration;
 
